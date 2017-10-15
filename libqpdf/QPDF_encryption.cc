@@ -1012,13 +1012,40 @@ QPDF::initializeEncryption()
     {
 	// password supplied was owner password; user_password has
 	// been initialized for V < 5
+
+	if (this->m->show_encryption_only) {
+	    std::string copy = this->m->user_password;
+	    this->m->has_user_password = !check_user_password(std::string(), data);
+	    this->m->has_owner_password	= !this->m->provided_password.empty() &&
+		!check_owner_password(copy, std::string(), data);
+	    // limitation for V < 5: If the owner password is the same as user password,
+	    // this report it does not have owner password, when correct user password is given.
+	    if (V < 5 && !this->m->provided_password.empty() && !this->m->has_owner_password) {
+		this->m->has_owner_password = -2;
+	    }
+	}
     }
     else if (check_user_password(this->m->provided_password, data))
     {
+	if (this->m->show_encryption_only) {
+	    std::string copy = this->m->user_password;
+	    this->m->has_user_password = !this->m->provided_password.empty();
+	    this->m->has_owner_password = !check_owner_password(copy, std::string(), data);
+	}
+
 	this->m->user_password = this->m->provided_password;
     }
     else
     {
+	if (this->m->show_encryption_only) {
+	    if (this->m->provided_password.empty()) {
+		this->m->has_user_password = true;
+		if(V >= 5) {
+		    this->m->has_owner_password = true;
+		}
+		return;
+	    }
+	}
 	throw QPDFExc(qpdf_e_password, this->m->file->getName(),
 		      "", 0, "invalid password");
     }
@@ -1348,6 +1375,18 @@ std::string
 QPDF::getEncryptionKey() const
 {
     return this->m->encryption_key;
+}
+
+bool
+QPDF::hasUserPassword() const
+{
+    return this->m->has_user_password;
+}
+
+char
+QPDF::hasOwnerPassword() const
+{
+    return this->m->has_owner_password;
 }
 
 bool

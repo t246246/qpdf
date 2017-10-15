@@ -467,6 +467,28 @@ static std::string show_bool(bool v)
     return v ? "allowed" : "not allowed";
 }
 
+static std::string show_bool_in_yes_or_no(bool v)
+{
+    return v ? "yes" : "no";
+}
+
+static std::string show_nullable_bool(char v)
+{
+    switch (v)
+    {
+      case 1:
+	  return "yes";
+      case 0:
+	  return "no";
+      case -1:
+	  return "unknown";
+      case -2:
+	  return "no (or same)";
+    }
+    return "unknown";
+}
+
+
 static std::string show_encryption_method(QPDF::encryption_method_e method)
 {
     std::string result = "unknown";
@@ -492,7 +514,7 @@ static std::string show_encryption_method(QPDF::encryption_method_e method)
     return result;
 }
 
-static void show_encryption(QPDF& pdf)
+static void show_encryption(QPDF& pdf, bool more_info = false)
 {
     // Extract /P from /Encrypt
     int R = 0;
@@ -508,8 +530,17 @@ static void show_encryption(QPDF& pdf)
     }
     else
     {
+        if (more_info)
+        {
+            std::cout << "V = " << V << std::endl;
+        }
 	std::cout << "R = " << R << std::endl;
 	std::cout << "P = " << P << std::endl;
+        if (more_info)
+        {
+            std::cout << "Has user password: " << show_bool_in_yes_or_no(pdf.hasUserPassword()) << std::endl;
+            std::cout << "Has owner password: " << show_nullable_bool(pdf.hasOwnerPassword()) << std::endl;
+        }
 	std::string user_password = pdf.getTrimmedUserPassword();
 	std::cout << "User password = " << user_password << std::endl
                   << "extract for accessibility: "
@@ -1868,7 +1899,7 @@ static void do_inspection(QPDF& pdf, Options& o)
     }
     if (o.show_encryption)
     {
-        show_encryption(pdf);
+        show_encryption(pdf, true);
     }
     if (o.check_linearization)
     {
@@ -2327,6 +2358,10 @@ int main(int argc, char* argv[])
         }
         else
         {
+            if (o.show_encryption)
+            {
+                pdf.set_show_encryption_only();
+            }
             pdf.processFile(o.infilename, o.password);
         }
 

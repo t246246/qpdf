@@ -55,6 +55,9 @@ class QPDF
     QPDF_DLL
     ~QPDF();
 
+    QPDF_DLL
+    void set_show_encryption_only();
+
     // Associate a file with a QPDF object and do initial parsing of
     // the file.  PDF objects are not read until they are needed.  A
     // QPDF object may be associated with only one file in its
@@ -387,6 +390,11 @@ class QPDF
     // this file
     QPDF_DLL
     std::string getEncryptionKey() const;
+
+    QPDF_DLL
+    bool hasUserPassword() const;
+    QPDF_DLL
+    char hasOwnerPassword() const;
 
     // Linearization support
 
@@ -1165,6 +1173,9 @@ class QPDF
         std::string cached_object_encryption_key;
         int cached_key_objid;
         int cached_key_generation;
+        bool show_encryption_only;
+        bool has_user_password;
+        char has_owner_password;
         std::string pdf_version;
         std::map<QPDFObjGen, QPDFXRefEntry> xref_table;
         std::set<int> deleted_objects;

@@ -1893,8 +1893,9 @@ foreach my $d (@encrypted_files)
 	$td->runtest("check /P",
 		     {$td->COMMAND =>
 			  "qpdf --show-encryption --password=\"$pass\"" .
-			  " $file.enc2"},
-		     {$td->STRING => "R = $R\nP = $P\n" .
+			  " $file.enc2",
+		      $td->FILTER => "egrep -v '(yes|no( \\(or same\\))?|unknown)\$'"},
+		     {$td->STRING => "V = $V\nR = $R\nP = $P\n" .
 			  "User password = $upass\n$enc_details",
 			  $td->EXIT_STATUS => 0},
 		     $td->NORMALIZE_NEWLINES);
@@ -1917,8 +1918,9 @@ foreach my $d (@encrypted_files)
 	$td->runtest("check /P",
 		     {$td->COMMAND =>
 			  "qpdf --show-encryption --password=\"$pass\"" .
-			  " $file.enc4"},
-		     {$td->STRING => "R = $R\nP = $P\n" .
+			  " $file.enc4",
+		      $td->FILTER => "egrep -v '(yes|no( \\(or same\\))?|unknown)\$'"},
+		     {$td->STRING => "V = $V\nR = $R\nP = $P\n" .
 			  "User password = $upass\n$enc_details",
 			  $td->EXIT_STATUS => 0},
 		     $td->NORMALIZE_NEWLINES);
@@ -2002,8 +2004,8 @@ $td->runtest("linearize encrypted file",
 	      $td->EXIT_STATUS => 0});
 $td->runtest("check encryption",
 	     {$td->COMMAND => "qpdf --show-encryption a.pdf",
-	      $td->FILTER => "grep -v allowed"},
-	     {$td->STRING => "R = 3\nP = -4\nUser password = \n",
+	      $td->FILTER => "egrep -v '(allowed|yes|no( \\(or same\\))?|unknown)\$'"},
+	     {$td->STRING => "V = 2\nR = 3\nP = -4\nUser password = \n",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("check linearization",
@@ -2019,8 +2021,8 @@ $td->runtest("linearize and encrypt file",
 	      $td->EXIT_STATUS => 0});
 $td->runtest("check encryption",
 	     {$td->COMMAND => "qpdf --show-encryption --password=owner a.pdf",
-	      $td->FILTER => "grep -v allowed | grep -v method"},
-	     {$td->STRING => "R = 4\nP = -4\nUser password = user\n",
+	      $td->FILTER => "egrep -v '(allowed|yes|no( \\(or same\\))?|unknown)\$' | grep -v method"},
+	     {$td->STRING => "V = 4\nR = 4\nP = -4\nUser password = user\n",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("check linearization",
@@ -2030,16 +2032,100 @@ $td->runtest("check linearization",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 
+# has password test
+foreach my $length (128, 256) {
+    my $yes_or_unknown_result = $length != 256 ? 'unknown' : 'yes';
+    my $no_or_unknown_result = $length != 256 ? 'unknown' : 'no';
+    my $same_password_or_no_result = $length != 256 ? 'no (or same)' : 'no';
+    my $same_password_or_yes_result = $length != 256 ? 'no (or same)' : 'yes';
+
+    # no password
+    $td->runtest("encrypt $length no/no",
+		 {$td->COMMAND => "qpdf --encrypt '' '' $length --" . " enc-base.pdf a.pdf"},
+		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: no\nHas owner password: no\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
+		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
+    # user password only
+    $td->runtest("encrypt $length yes/no",
+		 {$td->COMMAND => "qpdf --encrypt 'user' '' $length --" . " enc-base.pdf a.pdf"},
+		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: $no_or_unknown_result\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=user a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: $same_password_or_no_result\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
+		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
+    # owner password only
+    $td->runtest("encrypt $length no/yes",
+		 {$td->COMMAND => "qpdf --encrypt '' 'owner' $length --" . " enc-base.pdf a.pdf"},
+		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: no\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=owner a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: no\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
+		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
+    # both user and owner password
+    $td->runtest("encrypt $length yes/yes",
+		 {$td->COMMAND => "qpdf --encrypt 'user' 'owner' $length --" . " enc-base.pdf a.pdf"},
+		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: $yes_or_unknown_result\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=user a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=owner a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
+		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
+    # same password
+    $td->runtest("encrypt $length yes/yes",
+		 {$td->COMMAND => "qpdf --encrypt 'same' 'same' $length --" . " enc-base.pdf a.pdf"},
+		 {$td->STRING => "", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: $yes_or_unknown_result\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password $same_password_or_yes_result",
+		 {$td->COMMAND => "qpdf --show-encryption --password=same a.pdf",
+		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
+		 {$td->STRING => "Has user password: yes\nHas owner password: $same_password_or_yes_result\n", $td->EXIT_STATUS => 0});
+    $td->runtest("check has password",
+		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
+		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
+}
+
 # Test AES encryption in various ways.
-$n_tests += 18;
+$n_tests += 18 + 40;
 $td->runtest("encrypt with AES",
 	     {$td->COMMAND => "qpdf --encrypt '' '' 128 --use-aes=y --" .
 		  " enc-base.pdf a.pdf"},
 	     {$td->STRING => "", $td->EXIT_STATUS => 0});
 $td->runtest("check encryption",
 	     {$td->COMMAND => "qpdf --show-encryption a.pdf",
-	      $td->FILTER => "grep -v allowed | grep -v method"},
-	     {$td->STRING => "R = 4\nP = -4\nUser password = \n",
+	      $td->FILTER => "egrep -v '(allowed|yes|no)\$' | grep -v method"},
+	     {$td->STRING => "V = 4\nR = 4\nP = -4\nUser password = \n",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("convert original to qdf",
@@ -2059,8 +2145,8 @@ $td->runtest("linearize with AES and object streams",
 	     {$td->STRING => "", $td->EXIT_STATUS => 0});
 $td->runtest("check encryption",
 	     {$td->COMMAND => "qpdf --show-encryption a.pdf",
-	      $td->FILTER => "grep -v allowed | grep -v method"},
-	     {$td->STRING => "R = 4\nP = -4\nUser password = \n",
+	      $td->FILTER => "egrep -v '(allowed|yes|no)\$' | grep -v method"},
+	     {$td->STRING => "V = 4\nR = 4\nP = -4\nUser password = \n",
 	      $td->EXIT_STATUS => 0},
 	     $td->NORMALIZE_NEWLINES);
 $td->runtest("linearize original",

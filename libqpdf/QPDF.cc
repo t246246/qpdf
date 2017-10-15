@@ -90,6 +90,9 @@ QPDF::Members::Members() :
     cf_file(e_none),
     cached_key_objid(0),
     cached_key_generation(0),
+    show_encryption_only(false),
+    has_user_password(false),
+    has_owner_password(-1),
     pushed_inherited_attributes_to_pages(false),
     copied_stream_data_provider(0),
     reconstructed_xref(false),
@@ -131,6 +134,12 @@ QPDF::~QPDF()
 	QPDFObject::ObjAccessor::releaseResolved(
 	    (*iter).second.object.getPointer());
     }
+}
+
+void
+QPDF::set_show_encryption_only()
+{
+    this->m->show_encryption_only = true;
 }
 
 void
@@ -341,7 +350,10 @@ QPDF::parse(char const* password)
     }
 
     initializeEncryption();
-    findAttachmentStreams();
+    if (!this->m->show_encryption_only)
+    {
+        findAttachmentStreams();
+    }
 }
 
 void
