@@ -350,7 +350,7 @@ QPDF::parse(char const* password)
     }
 
     initializeEncryption();
-    if (!this->m->show_encryption_only)
+    if (password || !this->m->show_encryption_only)
     {
         findAttachmentStreams();
     }

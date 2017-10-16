@@ -2043,75 +2043,75 @@ foreach my $length (128, 256) {
     $td->runtest("encrypt $length no/no",
 		 {$td->COMMAND => "qpdf --encrypt '' '' $length --" . " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with no password)",
 		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: no\nHas owner password: no\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with wrong password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
 		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
     # user password only
     $td->runtest("encrypt $length yes/no",
 		 {$td->COMMAND => "qpdf --encrypt 'user' '' $length --" . " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with no password)",
 		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: $no_or_unknown_result\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with correct user password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=user a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: $same_password_or_no_result\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with wrong password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
 		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
     # owner password only
     $td->runtest("encrypt $length no/yes",
 		 {$td->COMMAND => "qpdf --encrypt '' 'owner' $length --" . " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with no password)",
 		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: no\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with correct owner password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=owner a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: no\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with wrong password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
 		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
     # both user and owner password
     $td->runtest("encrypt $length yes/yes",
 		 {$td->COMMAND => "qpdf --encrypt 'user' 'owner' $length --" . " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with no password)",
 		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: $yes_or_unknown_result\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with correct user password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=user a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with correct owner password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=owner a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: yes\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with wrong password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
 		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
     # same password
     $td->runtest("encrypt $length yes/yes",
 		 {$td->COMMAND => "qpdf --encrypt 'same' 'same' $length --" . " enc-base.pdf a.pdf"},
 		 {$td->STRING => "", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with no password)",
 		 {$td->COMMAND => "qpdf --show-encryption a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: $yes_or_unknown_result\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password $same_password_or_yes_result",
+    $td->runtest("check has password (with correct password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=same a.pdf",
 		  $td->FILTER => "egrep '^Has (user|owner) password:'"},
 		 {$td->STRING => "Has user password: yes\nHas owner password: $same_password_or_yes_result\n", $td->EXIT_STATUS => 0});
-    $td->runtest("check has password",
+    $td->runtest("check has password (with wrong password)",
 		 {$td->COMMAND => "qpdf --show-encryption --password=wrong a.pdf"},
 		 {$td->REGEXP => ".*invalid password.*", $td->EXIT_STATUS => 2});
 }
